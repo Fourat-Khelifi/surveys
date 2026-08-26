@@ -5,7 +5,6 @@ enum QuestionType {
   longText,
   singleChoice,
   multiChoice,
-  checkbox,
   slider,
   number,
   decimal,
@@ -34,8 +33,6 @@ extension QuestionTypeExtension on QuestionType {
         return 'email';
       case QuestionType.phone:
         return 'phone';
-      case QuestionType.checkbox:
-        return 'checkbox';
     }
   }
 
@@ -59,14 +56,12 @@ extension QuestionTypeExtension on QuestionType {
         return QuestionType.email;
       case 'phone':
         return QuestionType.phone;
-      case 'checkbox':
-        return QuestionType.checkbox;
       default:
         throw Exception('Unknown QuestionType: $value');
     }
   }
 
-  static bool isTextType(QuestionType type) {
+  static bool isText(QuestionType type) {
     return [
       QuestionType.shortText,
       QuestionType.longText,

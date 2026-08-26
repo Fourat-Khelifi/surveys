@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:surveys/core/constants/colors.dart';
+import 'package:surveys/core/constants/motion.dart';
 import 'package:surveys/core/constants/enums.dart';
 import 'package:surveys/core/models/question.dart';
 import 'package:surveys/core/models/survey.dart';
@@ -13,22 +15,6 @@ import 'package:surveys/shared/widgets/button.dart';
 import 'package:flutter/widget_previews.dart';
 import 'package:surveys/shared/widgets/app_bar.dart';
 import 'package:surveys/shared/widgets/icon_button.dart';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-bool isTextType(QuestionType type) {
-  const textTypes = {
-    QuestionType.shortText,
-    QuestionType.longText,
-    QuestionType.number,
-    QuestionType.decimal,
-    QuestionType.email,
-    QuestionType.phone,
-  };
-  return textTypes.contains(type);
-}
 
 // ---------------------------------------------------------------------------
 // Widget
@@ -54,6 +40,12 @@ class _SurveyScreenState extends State<SurveyScreen> {
   List<Question> _questions = [];
   int _currentStep = 0;
   bool _isLoading = true;
+  bool _isSubmitting = false;
+  bool _loadFailed = false;
+
+  /// +1 when moving forward, -1 when going back. Drives which way the question
+  /// slides, so Back visibly reverses Next rather than repeating it.
+  int _stepDirection = 1;
 
   int get _totalQuestions => _questions.length;
 
@@ -82,8 +74,14 @@ class _SurveyScreenState extends State<SurveyScreen> {
       if (!mounted) return;
 
       for (final q in survey.questions ?? []) {
-        if (isTextType(q.type)) {
-          _controllers[q.id] = TextEditingController();
+        if (QuestionTypeExtension.isText(q.type)) {
+          final controller = TextEditingController();
+          controller.addListener(() {
+            if (mounted) setState(() {});
+          });
+          _controllers[q.id] = controller;
+        } else if (q.type == QuestionType.slider) {
+          _answers[q.id] = (q.min ?? 0).toDouble();
         }
       }
       setState(() {
@@ -93,6 +91,14 @@ class _SurveyScreenState extends State<SurveyScreen> {
       });
     } catch (e) {
       debugPrint("Error fetching survey with questions: $e");
+
+      if (!mounted) return;
+
+      // Without this the spinner spins forever on any network failure.
+      setState(() {
+        _isLoading = false;
+        _loadFailed = true;
+      });
     }
   }
 
@@ -120,24 +126,78 @@ class _SurveyScreenState extends State<SurveyScreen> {
     }
   }
 
-  void _restoreControllerForStep(int step) {
-    final q = _questions[step];
-    final controller = _controllers[q.id];
-    if (controller == null) return;
+  // ── Validation ──────────────────────────────────────────────────────────
 
-    final stored = _answers[q.id]?.toString() ?? '';
-    if (controller.text != stored) {
-      controller.text = stored;
+  bool _validateCurrentStep() {
+    final q = _questions[_currentStep];
+    if (!q.isRequired) return true;
+
+    switch (q.type) {
+      case QuestionType.shortText:
+      case QuestionType.longText:
+      case QuestionType.number:
+      case QuestionType.decimal:
+      case QuestionType.email:
+      case QuestionType.phone:
+        final controller = _controllers[q.id];
+        if (controller == null || controller.text.trim().isEmpty) return false;
+      case QuestionType.singleChoice:
+        if (_answers[q.id] == null) return false;
+      case QuestionType.multiChoice:
+        final selected = _answers[q.id];
+        if (selected == null) return false;
+        if (selected is Set && selected.isEmpty) return false;
+      case QuestionType.slider:
+        // Slider always has a value (default min).
+        break;
     }
+    return true;
   }
 
   // ── Navigation ───────────────────────────────────────────────────────────
 
+  void _confirmExit() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Leave survey?"),
+        content: const Text(
+          "Your progress will be lost. Are you sure you want to leave?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Stay"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
+            },
+            child: const Text("Leave"),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _nextStep() {
     _saveCurrentAnswer();
 
+    if (!_validateCurrentStep()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please answer this question before continuing.'),
+        ),
+      );
+      return;
+    }
+
     if (_currentStep < _totalQuestions - 1) {
-      setState(() => _currentStep++);
+      setState(() {
+        _stepDirection = 1;
+        _currentStep++;
+      });
     } else {
       _submitSurvey();
     }
@@ -146,7 +206,10 @@ class _SurveyScreenState extends State<SurveyScreen> {
   void _previousStep() {
     if (_currentStep > 0) {
       _saveCurrentAnswer();
-      setState(() => _currentStep--);
+      setState(() {
+        _stepDirection = -1;
+        _currentStep--;
+      });
     } else {
       Navigator.pop(context);
     }
@@ -155,21 +218,39 @@ class _SurveyScreenState extends State<SurveyScreen> {
   // ── Submission ───────────────────────────────────────────────────────────
 
   Future<void> _submitSurvey() async {
-    debugPrint('Collected answers: $_answers');
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
 
     try {
-      await _service.submitSurvey(
-        _survey!.id,
-        "11111111-1111-1111-1111-111111111111",
-        _answers,
+      final result = await _service.submitSurvey(
+        surveyId: _survey!.id,
+        questions: _questions,
+        answers: _answers,
       );
 
       if (!mounted) return;
 
-      Navigator.push(
+      // Replace rather than push: the survey is submitted, so Back must not
+      // return to the last question of it.
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => SurveyOutroScreen(reward: _survey!.reward),
+          builder: (_) => SurveyOutroScreen(reward: result.reward),
+        ),
+      );
+    } on SubmitSurveyFailure catch (failure) {
+      if (!mounted) return;
+
+      setState(() => _isSubmitting = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(failure.message),
+          // The answers are still in _answers, so retrying costs the user
+          // nothing — except where retrying cannot possibly work.
+          action: failure.isTerminal
+              ? null
+              : SnackBarAction(label: 'Retry', onPressed: _submitSurvey),
         ),
       );
     } catch (e) {
@@ -177,9 +258,14 @@ class _SurveyScreenState extends State<SurveyScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Failed to submit survey")));
+      setState(() => _isSubmitting = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Couldn't submit your answers."),
+          action: SnackBarAction(label: 'Retry', onPressed: _submitSurvey),
+        ),
+      );
     }
   }
 
@@ -187,33 +273,94 @@ class _SurveyScreenState extends State<SurveyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading || _survey == null) {
-      return const Scaffold(
-        backgroundColor: Color(0xffe5e1de),
-        body: Center(child: CircularProgressIndicator()),
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    _restoreControllerForStep(_currentStep);
+    if (_loadFailed || _survey == null) {
+      return _buildMessageScaffold(
+        "Couldn't load this survey",
+        "Check your connection and try again.",
+      );
+    }
+
+    // A survey row can exist with no questions attached — the `length` column
+    // is not always in step with the questions table. Guard rather than let
+    // _questions[_currentStep] throw a RangeError.
+    if (_questions.isEmpty) {
+      return _buildMessageScaffold(
+        "This survey isn't ready yet",
+        "It has no questions attached. Please try another one.",
+      );
+    }
+
     final question = _questions[_currentStep];
 
-    return Scaffold(
-      backgroundColor: const Color(0xffe5e1de),
-      appBar: const CustomAppBar(),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 32),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: _buildQuestionContent(question),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _confirmExit();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: const CustomAppBar(),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 32),
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: AppMotion.of(context, AppMotion.base),
+                    switchInCurve: AppMotion.enter,
+                    switchOutCurve: AppMotion.standard,
+                    // Default is a crossfade in place, which reads as a flicker
+                    // when both children are text on the same background. A
+                    // small horizontal slide gives the step a direction.
+                    transitionBuilder: (child, animation) {
+                      final entering = child.key == ValueKey<int>(_currentStep);
+                      final offset = entering
+                          ? _stepDirection * 0.12
+                          : _stepDirection * -0.12;
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: Offset(offset, 0),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        ),
+                      );
+                    },
+                    // Sizing the outgoing child out of the layout stops a tall
+                    // question from stretching the scroll view while a short
+                    // one fades in behind it.
+                    layoutBuilder: (current, previous) => Stack(
+                      alignment: Alignment.topLeft,
+                      children: [
+                        ...previous.map(
+                          (c) =>
+                              Positioned.fill(child: IgnorePointer(child: c)),
+                        ),
+                        ?current,
+                      ],
+                    ),
+                    child: SingleChildScrollView(
+                      key: ValueKey<int>(_currentStep),
+                      child: _buildQuestionContent(question),
+                    ),
+                  ),
                 ),
-              ),
-              _buildNavigation(),
-            ],
+                _buildNavigation(),
+              ],
+            ),
           ),
         ),
       ),
@@ -267,17 +414,25 @@ class _SurveyScreenState extends State<SurveyScreen> {
           controller: controller!,
         );
       case QuestionType.singleChoice:
+        if ((question.options ?? []).isEmpty) {
+          return _buildBrokenQuestion(question);
+        }
         return SingleChoiceQuestion(
           key: ValueKey(question.id),
           title: question.title,
+          description: question.description,
           op: question.options,
           selectedValue: _answers[question.id],
           onChanged: (value) => setState(() => _answers[question.id] = value),
         );
       case QuestionType.multiChoice:
+        if ((question.options ?? []).isEmpty) {
+          return _buildBrokenQuestion(question);
+        }
         return MultiChoiceQuestion(
           key: ValueKey(question.id),
           title: question.title,
+          description: question.description,
           op: question.options,
           selectedValues: _answers[question.id] as Set<String>? ?? {},
           onChanged: (value) => setState(() => _answers[question.id] = value),
@@ -291,9 +446,68 @@ class _SurveyScreenState extends State<SurveyScreen> {
               (question.min ?? 0).toDouble(),
           onChanged: (value) => setState(() => _answers[question.id] = value),
         );
-      default:
-        return const Text('Unsupported question type');
     }
+  }
+
+  /// A choice question whose options were never authored. Rendering the empty
+  /// list would just show the title over blank space, leaving the user to
+  /// wonder what to tap.
+  Widget _buildBrokenQuestion(Question question) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          question.title,
+          style: Theme.of(context).textTheme.titleLarge,
+          softWrap: true,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          "This question has no answers to choose from yet. Skip it with Next.",
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textSubtle),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMessageScaffold(String title, String body) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: const CustomAppBar(),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                body,
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSubtle),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: AppButton(
+                  text: "Go back",
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // ── Sub-widgets ──────────────────────────────────────────────────────────
@@ -306,20 +520,19 @@ class _SurveyScreenState extends State<SurveyScreen> {
           children: [
             Text(
               _survey!.title,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const Spacer(),
-            IconButton(
-              icon: const Icon(Icons.close, color: Colors.black, size: 32),
-              onPressed: () => Navigator.of(context).pop(),
+              style: Theme.of(context).textTheme.headlineMedium,
             ),
           ],
         ),
         const SizedBox(height: 16),
-        Text(
-          'Question ${_currentStep + 1}/$_totalQuestions'
-          ' (${((_currentStep + 1) / _totalQuestions * 100).toStringAsFixed(0)}%)',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        AnimatedSwitcher(
+          duration: AppMotion.of(context, AppMotion.quick),
+          child: Text(
+            'Question ${_currentStep + 1}/$_totalQuestions'
+            ' (${((_currentStep + 1) / _totalQuestions * 100).toStringAsFixed(0)}%)',
+            key: ValueKey<int>(_currentStep),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
         ),
         const SizedBox(height: 8),
         _buildProgressBar(),
@@ -328,13 +541,26 @@ class _SurveyScreenState extends State<SurveyScreen> {
   }
 
   Widget _buildProgressBar() {
+    final target = (_currentStep + 1) / _totalQuestions;
+
     return Column(
       children: [
-        LinearProgressIndicator(
-          value: (_currentStep + 1) / _totalQuestions,
-          minHeight: 4,
-          backgroundColor: Colors.grey[400],
-          color: Colors.black,
+        // Tweening the value rather than setting it makes the bar travel to the
+        // new step instead of jumping, which is what sells the sense of
+        // progress through a long survey.
+        TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0, end: target),
+          duration: AppMotion.of(context, AppMotion.base),
+          curve: AppMotion.standard,
+          builder: (context, value, _) => ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: value,
+              minHeight: 6,
+              backgroundColor: AppColors.disabled,
+              color: Colors.black,
+            ),
+          ),
         ),
         const SizedBox(height: 16),
       ],
@@ -342,17 +568,22 @@ class _SurveyScreenState extends State<SurveyScreen> {
   }
 
   Widget _buildNavigation() {
+    final canProceed = !_isSubmitting && _validateCurrentStep();
+
     return Row(
       children: [
         AppIconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: _previousStep,
+          onPressed: _isSubmitting ? null : _previousStep,
         ),
         const SizedBox(width: 8),
         Expanded(
           child: AppButton(
-            text: _currentStep == _totalQuestions - 1 ? 'Finish' : 'Next',
-            onPressed: _nextStep,
+            text: _isSubmitting
+                ? 'Submitting...'
+                : (_currentStep == _totalQuestions - 1 ? 'Finish' : 'Next'),
+            onPressed: canProceed ? _nextStep : null,
+            enabled: canProceed,
           ),
         ),
       ],

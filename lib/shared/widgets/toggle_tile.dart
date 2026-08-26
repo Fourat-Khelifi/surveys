@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 import 'package:surveys/core/constants/colors.dart';
+import 'package:surveys/core/constants/motion.dart';
+import 'package:surveys/shared/widgets/pressable.dart';
 
 class AppToggleTile<T> extends StatelessWidget {
   final T value;
@@ -18,22 +20,29 @@ class AppToggleTile<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
+    return AppPressable(
+      onPressed: onTap,
+      scale: 0.94,
+      child: AnimatedContainer(
+        duration: AppMotion.of(context, AppMotion.quick),
+        curve: AppMotion.standard,
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
           color: isActive ? AppColors.atomictangerine : Colors.transparent,
-          border: Border.all(color: Colors.black, width: 1.5),
+          // The border thickens as well as filling, so selection still reads
+          // without relying on colour alone.
+          border: Border.all(color: Colors.black, width: isActive ? 2 : 1.5),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Text(
-          title,
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+        child: AnimatedDefaultTextStyle(
+          duration: AppMotion.of(context, AppMotion.quick),
+          curve: AppMotion.standard,
+          style: (Theme.of(context).textTheme.titleMedium ?? const TextStyle())
+              .copyWith(
+                color: Colors.black,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+              ),
+          child: Text(title),
         ),
       ),
     );

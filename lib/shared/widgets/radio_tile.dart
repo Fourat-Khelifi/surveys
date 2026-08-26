@@ -12,11 +12,7 @@ class AppRadioTile<T> extends StatelessWidget {
     return RadioListTile<T>(
       title: Text(
         title,
-        style: const TextStyle(
-          color: Colors.black,
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.black),
       ),
       value: value,
       tileColor: Colors.transparent,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 import 'package:surveys/core/constants/colors.dart';
+import 'package:surveys/shared/widgets/pressable.dart';
 
 class AppSurveyCard extends StatelessWidget {
   final String title;
@@ -22,8 +23,11 @@ class AppSurveyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
+    // A larger surface needs a smaller scale change to travel the same distance
+    // on screen, so this presses less far than a chip does.
+    return AppPressable(
+      onPressed: onTap,
+      scale: 0.985,
       child: Container(
         decoration: BoxDecoration(
           color: _pickCardColor(duration: duration),
@@ -41,12 +45,8 @@ class AppSurveyCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       title,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                        height: 1.2,
-                      ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(color: Colors.black, height: 1.2),
                     ),
                   ),
                   Icon(
@@ -73,11 +73,8 @@ class AppSurveyCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         reward.toString(),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.black87,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(color: Colors.black87),
                       ),
                     ],
                   ),
@@ -92,11 +89,8 @@ class AppSurveyCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         "$duration min",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.black87,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(color: Colors.black87),
                       ),
                     ],
                   ),

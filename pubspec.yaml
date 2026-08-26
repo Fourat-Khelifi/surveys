@@ -1,5 +1,5 @@
 name: surveys
-description: "A new Flutter project."
+description: "Answer surveys, earn points. Flutter + Supabase."
 publish_to: "none"
 version: 0.1.0
 
@@ -10,22 +10,50 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_dotenv: ^6.0.0
-  google_fonts: ^8.0.2
   supabase_flutter: ^2.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # Used only by the live integration test, to stub the session store that
+  # supabase_flutter writes to.
+  shared_preferences: ^2.3.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
   fonts:
+    # Variable fonts: no `weight:` key. Pinning one snaps the file to that
+    # single instance, so FontWeight.w700 renders as 400 (or gets synthesised)
+    # instead of driving the font's own wght axis.
     - family: InterTight
       fonts:
         - asset: fonts/InterTight-VariableFont_wght.ttf
-          weight: 400
         - asset: fonts/InterTight-Italic-VariableFont_wght.ttf
           style: italic
+    - family: Fraunces
+      fonts:
+        - asset: fonts/Fraunces-VariableFont_wght.ttf
   assets:
     - assets/.env
+
+# Regenerate with:  dart run flutter_launcher_icons
+# The source PNGs come from `python tool/make_icon.py`, which renders them from
+# the same Fraunces file the in-app wordmark uses — so the icon and the wordmark
+# cannot drift apart.
+flutter_launcher_icons:
+  image_path: "assets/icon/icon.png"
+  android: "launcher_icon"
+  ios: true
+  remove_alpha_ios: true
+  # Android composites these two layers and crops to the launcher's shape, so
+  # the foreground carries the mark inset and the background is a flat colour.
+  adaptive_icon_background: "#f5f3f1"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  adaptive_icon_monochrome: "assets/icon/icon_foreground.png"
+  web:
+    generate: true
+    image_path: "assets/icon/icon.png"
+    background_color: "#f5f3f1"
+    theme_color: "#EF7B45"

@@ -1,28 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 import 'package:surveys/core/constants/colors.dart';
+import 'package:surveys/core/constants/motion.dart';
 import 'package:surveys/core/constants/enums.dart';
+import 'package:surveys/shared/widgets/pressable.dart';
 
 class AppButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
   final ButtonType type;
+  final bool enabled;
 
   const AppButton({
     super.key,
     required this.text,
     this.onPressed,
     this.type = ButtonType.primary,
+    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: _getButtonStyle(),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    final effectiveOnPressed = enabled ? onPressed : null;
+
+    final baseStyle = _getButtonStyle();
+    final style = enabled
+        ? baseStyle
+        : baseStyle.copyWith(
+            backgroundColor: WidgetStateProperty.all(AppColors.disabled),
+            foregroundColor: WidgetStateProperty.all(Colors.white),
+          );
+
+    // AppPressable supplies the press feedback; the ElevatedButton keeps its
+    // own splash disabled (see _getButtonStyle) so the two don't compete.
+    return AppPressable(
+      onPressed: effectiveOnPressed,
+      scale: 0.97,
+      child: IgnorePointer(
+        child: ElevatedButton(
+          onPressed: effectiveOnPressed,
+          style: style,
+          // Swapping the label crossfades rather than snapping, so
+          // "Sign In" -> "Signing in..." doesn't flicker the layout.
+          child: AnimatedSwitcher(
+            duration: AppMotion.of(context, AppMotion.quick),
+            switchInCurve: AppMotion.enter,
+            child: Text(
+              text,
+              key: ValueKey(text),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+        ),
       ),
     );
   }

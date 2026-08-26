@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:surveys/core/constants/colors.dart';
+import 'package:surveys/core/constants/motion.dart';
 import 'package:surveys/core/constants/enums.dart';
 import 'package:surveys/screens/main_screen.dart';
 import 'package:surveys/shared/widgets/button.dart';
@@ -12,7 +13,7 @@ class SurveyOutroScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffe5e1de),
+      backgroundColor: AppColors.background,
       appBar: const CustomAppBar(),
       body: SafeArea(
         child: Padding(
@@ -22,16 +23,14 @@ class SurveyOutroScreen extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Spacer(),
+                  const Spacer(),
                   IconButton(
                     icon: const Icon(
                       Icons.close,
                       color: Colors.black,
                       size: 32,
                     ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
+                    onPressed: () => _goToMain(context),
                   ),
                 ],
               ),
@@ -44,7 +43,7 @@ class SurveyOutroScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                "Your earnings will be credited to your account within 24 hours.",
+                "Your points have been added to your balance.",
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
@@ -53,7 +52,7 @@ class SurveyOutroScreen extends StatelessWidget {
               ),
 
               const SizedBox(height: 16),
-              _incomeCard(),
+              _incomeCard(context),
               const Spacer(),
 
               SizedBox(
@@ -64,20 +63,13 @@ class SurveyOutroScreen extends StatelessWidget {
                   children: [
                     AppButton(
                       text: "Next Survey",
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const MainScreen()),
-                        );
-                      },
+                      onPressed: () => _goToMain(context),
                     ),
                     const SizedBox(height: 8),
                     AppButton(
                       text: "Close",
                       type: ButtonType.outlined,
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
+                      onPressed: () => _goToMain(context),
                     ),
                   ],
                 ),
@@ -89,7 +81,20 @@ class SurveyOutroScreen extends StatelessWidget {
     );
   }
 
-  Widget _incomeCard() {
+  void _goToMain(BuildContext context) {
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const MainScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+      (route) => false,
+    );
+  }
+
+  Widget _incomeCard(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -120,18 +125,31 @@ class SurveyOutroScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
-                      Text(
-                        '$reward',
-                        style: TextStyle(
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                          height: 1,
+                      // Counting up to the reward instead of printing it is the
+                      // one flourish in the app. It earns its place here: this
+                      // is the moment the user is being paid, and a number
+                      // that lands rather than appears is what makes it feel
+                      // like a reward rather than a receipt.
+                      TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0, end: reward.toDouble()),
+                        duration: AppMotion.of(context, AppMotion.slow),
+                        curve: AppMotion.enter,
+                        builder: (context, value, _) => Text(
+                          value.round().toString(),
+                          style: const TextStyle(
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                            height: 1,
+                            // Digits change width as they count; tabular
+                            // figures stop the label jittering as it climbs.
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
                         ),
                       ),
                       const SizedBox(width: 4),
                       const Text(
-                        'DT',
+                        'points',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -143,7 +161,7 @@ class SurveyOutroScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Will be credited to your account within 24 hours',
+                    'Added to your balance',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[800],

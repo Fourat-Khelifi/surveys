@@ -40,7 +40,7 @@ class AppSlider extends StatelessWidget {
               trackShape: const RectangularSliderTrackShape(),
               padding: const EdgeInsets.symmetric(horizontal: thumbWidth / 2),
               activeTrackColor: AppColors.atomictangerine,
-              inactiveTrackColor: Colors.grey[400],
+              inactiveTrackColor: AppColors.disabled,
               trackHeight: 6,
               thumbColor: AppColors.atomictangerine,
               thumbShape: const RectangularSliderThumbShape(
@@ -80,7 +80,9 @@ class AppSlider extends StatelessWidget {
                     .map(
                       (v) => Text(
                         v,
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     )
                     .toList(),

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:surveys/core/constants/colors.dart';
 import 'package:surveys/core/models/option.dart';
 import 'package:surveys/shared/widgets/toggle_tile.dart';
 
 class MultiChoiceQuestion extends StatelessWidget {
   final String title;
+  final String? description;
   final List<Option>? op;
   final Set<String> selectedValues;
   final Function(Set<String>) onChanged;
@@ -11,6 +13,7 @@ class MultiChoiceQuestion extends StatelessWidget {
   const MultiChoiceQuestion({
     super.key,
     required this.title,
+    this.description,
     required this.op,
     required this.selectedValues,
     required this.onChanged,
@@ -26,8 +29,17 @@ class MultiChoiceQuestion extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge,
         ),
+        if (description != null && description!.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            description!,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textSubtle,
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         SizedBox(
           width: double.infinity,

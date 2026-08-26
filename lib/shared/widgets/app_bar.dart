@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:surveys/shared/widgets/wordmark.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const CustomAppBar({super.key});
+  final bool showCloseButton;
+
+  const CustomAppBar({super.key, this.showCloseButton = true});
 
   @override
   Widget build(BuildContext context) {
@@ -12,36 +15,29 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Left: X icon
-          IconButton(
-            icon: const Icon(Icons.close, color: Colors.white),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
+          if (showCloseButton)
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.of(context).pop(),
+            )
+          else
+            const SizedBox(width: 48),
 
-          // Center: logo
-          Expanded(
+          const Expanded(
             child: Center(
-              child: Image.network(
-                "https://placehold.co/600x400/png",
-                height: 24, // adjust as needed
+              child: AppWordmark(
+                fontSize: 20,
+                color: Colors.white,
               ),
             ),
           ),
 
-          // Right: three dots icon
-          IconButton(
-            icon: const Icon(Icons.more_horiz, color: Colors.white),
-            onPressed: () {
-              // your action
-            },
-          ),
+          const SizedBox(width: 48),
         ],
       ),
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(48); // super thin
+  Size get preferredSize => const Size.fromHeight(48);
 }

@@ -1,11 +1,32 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFF1E88E5);
-  static const Color evergreen = Color(0xFF042A2B);
-  static const Color pacificblue = Color(0xFF5EB1BF);
-  static const Color lightcyan = Color(0xFFCDEDF6);
+  // ── Backgrounds ──────────────────────────────────────────────────────────
+  static const Color background = Color(0xffe5e1de);
+  static const Color authBackground = Color(0xfff5f3f1);
+  static const Color cardBackground = Color(0xffd5cfcc);
+
+  // ── Brand ────────────────────────────────────────────────────────────────
   static const Color atomictangerine = Color(0xFFEF7B45);
   static const Color burnttangerine = Color(0xFFD84727);
-  static const Color grey = Color(0xFF9E9E9E);
+  static const Color pacificblue = Color(0xFF5EB1BF);
+  static const Color lightcyan = Color(0xFFCDEDF6);
+  static const Color evergreen = Color(0xFF042A2B);
+
+  // ── Text / UI ────────────────────────────────────────────────────────────
+  static const Color textPrimary = Colors.black;
+  static const Color textSecondary = Color(0xFF757575); // Colors.grey[600]
+  static const Color textMuted = Color(0xFF9E9E9E); // Colors.grey[500]
+  static const Color textSubtle = Color(0xFF616161); // Colors.grey[700]
+  static const Color border = Colors.black;
+  static const Color disabled = Color(0xFF9E9E9E);
+
+  // ── Semantic ─────────────────────────────────────────────────────────────
+  static const Color error = Colors.red;
+  static const Color errorBackground = Color(0x14F44336); // red at 8%
+  static const Color success = Colors.green;
+
+  // ── Auth card ────────────────────────────────────────────────────────────
+  static const Color authCard = Colors.white;
+  static const Color authShadow = Color(0x0A000000); // black at 4%
 }

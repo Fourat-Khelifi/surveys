@@ -12,6 +12,7 @@ class Question {
   final int? divisions;
   final int? maxLength;
   final bool allowOtherText;
+  final bool isRequired;
 
   Question({
     required this.id,
@@ -24,6 +25,7 @@ class Question {
     this.divisions,
     this.maxLength,
     this.allowOtherText = false,
+    this.isRequired = true,
   });
 
   factory Question.fromJson(Map<String, dynamic> json) {
@@ -37,6 +39,7 @@ class Question {
       divisions: json['divisions'] as int?,
       maxLength: json['max_length'] as int?,
       allowOtherText: json['allow_other_text'] ?? false,
+      isRequired: json['is_required'] ?? true,
       options: json['options'] != null
           ? List<Option>.from(json['options'].map((x) => Option.fromJson(x)))
           : null,
@@ -53,6 +56,7 @@ class Question {
     'divisions': divisions,
     'max_length': maxLength,
     'allow_other_text': allowOtherText,
+    'is_required': isRequired,
     'options': options?.map((option) => option.toMap()).toList(),
   };
 }

@@ -47,7 +47,7 @@ class _MainAppState extends State<MainApp> {
   }
 
   void _resolveInitialSession() async {
-    await Future.delayed(const Duration(milliseconds: 1500));
+    await Future.delayed(const Duration(milliseconds: 2200));
     if (!mounted) return;
     final hasSession = Supabase.instance.client.auth.currentSession != null;
     setState(() {
@@ -86,6 +86,7 @@ class _MainAppState extends State<MainApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      key: ValueKey(_route),
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         fontFamily: 'InterTight',
@@ -94,7 +95,7 @@ class _MainAppState extends State<MainApp> {
           brightness: Brightness.light,
           primary: Colors.black,
           onPrimary: Colors.white,
-          secondary: AppColors.atomictangerine,
+          secondary: AppColors.accent,
           onSecondary: Colors.white,
           surface: AppColors.background,
           onSurface: Colors.black,
@@ -124,7 +125,7 @@ class _MainAppState extends State<MainApp> {
           labelSmall: TextStyle(fontSize: 10),
         ),
         progressIndicatorTheme: const ProgressIndicatorThemeData(
-          color: AppColors.atomictangerine,
+          color: AppColors.accent,
         ),
       ),
       home: switch (_route) {

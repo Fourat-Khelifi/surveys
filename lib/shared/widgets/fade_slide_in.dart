@@ -57,12 +57,12 @@ class _FadeSlideInState extends State<FadeSlideIn>
 
   @override
   Widget build(BuildContext context) {
-    if (MediaQuery.disableAnimationsOf(context)) return widget.child;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      // Skip the controller work entirely when animations are off.
+      return widget.child;
+    }
 
-    final curved = CurvedAnimation(
-      parent: _controller,
-      curve: AppMotion.enter,
-    );
+    final curved = CurvedAnimation(parent: _controller, curve: AppMotion.enter);
 
     return AnimatedBuilder(
       animation: curved,

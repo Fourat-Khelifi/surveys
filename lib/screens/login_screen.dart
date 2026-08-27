@@ -295,7 +295,7 @@ class _LoginScreenState extends State<LoginScreen> {
         TextButton(
           onPressed: isLoading ? null : openSignup,
           style: TextButton.styleFrom(
-            foregroundColor: AppColors.burnttangerine,
+            foregroundColor: AppColors.accentDark,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,

@@ -311,7 +311,7 @@ class _SignupScreenState extends State<SignupScreen> {
         TextButton(
           onPressed: isLoading ? null : () => Navigator.pop(context),
           style: TextButton.styleFrom(
-            foregroundColor: AppColors.burnttangerine,
+            foregroundColor: AppColors.accentDark,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,

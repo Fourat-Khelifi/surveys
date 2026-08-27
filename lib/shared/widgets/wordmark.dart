@@ -12,7 +12,7 @@ class AppWordmark extends StatelessWidget {
     super.key,
     this.fontSize = 44,
     this.color = AppColors.textPrimary,
-    this.accent = AppColors.atomictangerine,
+    this.accent = AppColors.accent,
   });
 
   final double fontSize;

@@ -99,7 +99,7 @@ class SurveyOutroScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
-        color: AppColors.atomictangerine,
+        color: AppColors.accent,
         borderRadius: BorderRadius.all(Radius.circular(12)),
       ),
       child: Column(

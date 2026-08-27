@@ -105,15 +105,15 @@ class AppSurveyCard extends StatelessWidget {
 
   Color _pickCardColor({required int duration}) {
     if (duration <= 5) {
-      return AppColors.lightcyan;
+      return AppColors.tealLight;
     } else if (duration <= 10) {
-      return AppColors.pacificblue;
+      return AppColors.teal;
     } else if (duration <= 15) {
-      return AppColors.evergreen;
+      return AppColors.dark;
     } else if (duration <= 20) {
-      return AppColors.atomictangerine;
+      return AppColors.accent;
     } else {
-      return AppColors.burnttangerine;
+      return AppColors.accentDark;
     }
   }
 }
@@ -126,7 +126,7 @@ Widget surveyCardPreview() {
         title: 'Customer Satisfaction Survey',
         duration: 150,
         reward: 2,
-        backgroundColor: AppColors.evergreen,
+        backgroundColor: AppColors.dark,
         onTap: () {},
       ),
       SizedBox(height: 16),
@@ -134,7 +134,7 @@ Widget surveyCardPreview() {
         title: 'Customer Satisfaction Survey',
         duration: 150,
         reward: 2,
-        backgroundColor: AppColors.pacificblue,
+        backgroundColor: AppColors.teal,
         onTap: () {},
       ),
       SizedBox(height: 16),
@@ -142,7 +142,7 @@ Widget surveyCardPreview() {
         title: 'Customer Satisfaction Survey',
         duration: 150,
         reward: 2,
-        backgroundColor: AppColors.lightcyan,
+        backgroundColor: AppColors.tealLight,
         onTap: () {},
       ),
       SizedBox(height: 16),
@@ -150,7 +150,7 @@ Widget surveyCardPreview() {
         title: 'Customer Satisfaction Survey',
         duration: 150,
         reward: 2,
-        backgroundColor: AppColors.atomictangerine,
+        backgroundColor: AppColors.accent,
         onTap: () {},
       ),
       SizedBox(height: 16),
@@ -158,7 +158,7 @@ Widget surveyCardPreview() {
         title: 'Customer Satisfaction Survey',
         duration: 150,
         reward: 2,
-        backgroundColor: AppColors.burnttangerine,
+        backgroundColor: AppColors.accentDark,
         onTap: () {},
       ),
     ],

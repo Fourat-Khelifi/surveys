@@ -71,6 +71,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isSigningOut = true);
     try {
       await _authService.signOut();
+      // The auth listener in MainApp flips _route to auth; the keyed
+      // MaterialApp then tears down the whole navigator (and any pushed
+      // screens like this one) and rebuilds with LoginScreen.
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSigningOut = false);

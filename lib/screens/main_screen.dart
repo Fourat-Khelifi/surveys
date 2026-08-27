@@ -30,6 +30,10 @@ class _MainScreenState extends State<MainScreen> {
   bool isLoading = true;
   bool loadFailed = false;
 
+  /// Which tab has already played its entrance stagger, so switching between
+  /// Available and Completed doesn't re-run the full list animation every time.
+  final Set<bool> _staggeredFor = {};
+
   @override
   void initState() {
     super.initState();
@@ -48,16 +52,29 @@ class _MainScreenState extends State<MainScreen> {
       appBar: const CustomAppBar(showCloseButton: false),
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: refresh,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(child: _buildIncomeCard()),
-              SliverToBoxAdapter(child: const SizedBox(height: 16)),
-              SliverToBoxAdapter(child: _buildTabs()),
-              _buildSurveyList(displayedSurveys),
-            ],
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragEnd: (details) {
+            final velocity = details.primaryVelocity ?? 0;
+            if (velocity < 0 && showAvailable) {
+              // Swipe left → completed
+              _setTab(false);
+            } else if (velocity > 0 && !showAvailable) {
+              // Swipe right → available
+              _setTab(true);
+            }
+          },
+          child: RefreshIndicator(
+            onRefresh: refresh,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(child: _buildIncomeCard()),
+                SliverToBoxAdapter(child: const SizedBox(height: 16)),
+                SliverToBoxAdapter(child: _buildTabs()),
+                _buildSurveyList(displayedSurveys),
+              ],
+            ),
           ),
         ),
       ),
@@ -121,7 +138,7 @@ class _MainScreenState extends State<MainScreen> {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => setState(() => showAvailable = true),
+            onTap: () => _setTab(true),
             child: Text(
               'Available (${surveysAvailable.length})',
               style: TextStyle(
@@ -133,7 +150,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           const SizedBox(width: 16),
           GestureDetector(
-            onTap: () => setState(() => showAvailable = false),
+            onTap: () => _setTab(false),
             child: Text(
               'Completed (${surveysCompleted.length})',
               style: TextStyle(
@@ -146,6 +163,14 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
     );
+  }
+
+  void _setTab(bool showAvailable) {
+    if (this.showAvailable == showAvailable) return;
+    // Mark the tab we're leaving as already staggered, so coming back to it
+    // later doesn't replay the whole list entrance.
+    _staggeredFor.add(this.showAvailable);
+    setState(() => this.showAvailable = showAvailable);
   }
 
   Widget _buildSurveyList(List<Survey> surveys) {
@@ -184,22 +209,36 @@ class _MainScreenState extends State<MainScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
-          (context, index) => FadeSlideIn(
-            // Capped so a long list still finishes arriving quickly — past the
-            // first handful the stagger has already done its job.
-            delay: Duration(milliseconds: 60 * (index.clamp(0, 5))),
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: AppSurveyCard(
-                title: surveys[index].title,
-                duration: surveys[index].duration,
-                reward: surveys[index].reward,
-                onTap: showAvailable ? () => _openSurvey(surveys[index]) : null,
-              ),
-            ),
-          ),
+          (context, index) => _staggeredFor.contains(showAvailable)
+              // Already played this tab's entrance — drop the wrapper entirely
+              // so a remount doesn't re-animate or waste a controller.
+              ? _surveyItem(surveys, index)
+              : Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: FadeSlideIn(
+                    // Capped so a long list still finishes arriving quickly —
+                    // past the first handful the stagger has already done it.
+                    delay: Duration(
+                      milliseconds: 60 * (index.clamp(0, 5)),
+                    ),
+                    child: _surveyItem(surveys, index),
+                  ),
+                ),
           childCount: surveys.length,
         ),
+      ),
+    );
+  }
+
+  Widget _surveyItem(List<Survey> surveys, int index) {
+    final survey = surveys[index];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: AppSurveyCard(
+        title: survey.title,
+        duration: survey.duration,
+        reward: survey.reward,
+        onTap: showAvailable ? () => _openSurvey(survey) : null,
       ),
     );
   }

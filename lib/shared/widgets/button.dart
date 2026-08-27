@@ -64,7 +64,7 @@ class AppButton extends StatelessWidget {
     return switch (type) {
       ButtonType.primary =>
         ElevatedButton.styleFrom(
-          backgroundColor: AppColors.atomictangerine,
+          backgroundColor: AppColors.accent,
           foregroundColor: Colors.black,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: baseStyle,
@@ -75,7 +75,7 @@ class AppButton extends StatelessWidget {
         ),
       ButtonType.secondary =>
         ElevatedButton.styleFrom(
-          backgroundColor: AppColors.lightcyan,
+          backgroundColor: AppColors.tealLight,
           foregroundColor: Colors.black,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: baseStyle,

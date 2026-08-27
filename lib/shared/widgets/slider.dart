@@ -39,10 +39,10 @@ class AppSlider extends StatelessWidget {
             data: SliderTheme.of(context).copyWith(
               trackShape: const RectangularSliderTrackShape(),
               padding: const EdgeInsets.symmetric(horizontal: thumbWidth / 2),
-              activeTrackColor: AppColors.atomictangerine,
+              activeTrackColor: AppColors.accent,
               inactiveTrackColor: AppColors.disabled,
               trackHeight: 6,
-              thumbColor: AppColors.atomictangerine,
+              thumbColor: AppColors.accent,
               thumbShape: const RectangularSliderThumbShape(
                 width: thumbWidth,
                 height: 24,
@@ -53,7 +53,7 @@ class AppSlider extends StatelessWidget {
               activeTickMarkColor: Colors.black,
               inactiveTickMarkColor: Colors.black,
               valueIndicatorShape: const DropSliderValueIndicatorShape(),
-              valueIndicatorColor: AppColors.atomictangerine,
+              valueIndicatorColor: AppColors.accent,
               valueIndicatorTextStyle: const TextStyle(
                 color: Colors.black,
                 fontWeight: FontWeight.bold,

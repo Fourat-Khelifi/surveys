@@ -13,20 +13,21 @@ Built with [Flutter](https://flutter.dev) and [Supabase](https://supabase.com).
 
 ## Screenshots
 
-_Not captured yet._ Drop PNGs into `docs/screenshots/` — sign-in, survey list, a question, and the reward screen — then uncomment the table below.
+<p align="center">
+  <img src="docs/screenshots/sign-in.png" alt="Sign in" width="180">
+  <img src="docs/screenshots/list.png" alt="Survey list" width="180">
+  <img src="docs/screenshots/question.png" alt="Question" width="180">
+  <img src="docs/screenshots/reward.png" alt="Reward" width="180">
+</p>
 
-<!--
-| Sign in | Surveys | Question | Reward |
-| :-----: | :-----: | :------: | :----: |
-| ![Sign in](docs/screenshots/sign-in.png) | ![Survey list](docs/screenshots/list.png) | ![Question](docs/screenshots/question.png) | ![Reward](docs/screenshots/reward.png) |
--->
+<p align="center"><em>Sign in · Surveys · Question · Reward</em></p>
 
 ---
 
 ## Getting started
 
 ```bash
-git clone <this repo> && cd surveys
+git clone https://github.com/Fourat-Khelifi/surveys.git && cd surveys
 flutter pub get
 ```
 
@@ -50,8 +51,14 @@ supabase link --project-ref <your-project-ref>
 SUPABASE_DB_PASSWORD='...' supabase db push
 ```
 
-That runs both migrations: the schema, functions and policies, then the survey
-catalogue. Both are idempotent.
+That runs the three migrations in order: schema, functions and policies; the
+survey catalogue; then `profiles` and the trigger that fills it on signup. All
+three are idempotent, so re-running them is a no-op and never overwrites
+content you have edited in the dashboard.
+
+Optionally, paste the two files in `assets/email-templates/` into
+**Authentication → Emails** in the dashboard — they replace Supabase's default
+confirm-signup and reset-password mails with ones that match the app.
 
 Run the app:
 
@@ -98,7 +105,9 @@ Because points are derived from completed responses, being unable to forge a res
 
 ### Nine question types
 
-`short_text`, `long_text`, `single_choice`, `multiple_choice`, `slider`, `number`, `decimal`, `email`, `phone` — each with its own widget, validation, and answer column.
+`short`, `long`, `single_choice`, `multiple_choice`, `slider`, `number`, `decimal`, `email`, `phone`.
+
+Five widgets cover them. The six text-shaped types all render through `ShortTextQuestionWidget` (or `LongTextQuestionWidget` for `long`), differing only in keyboard, input formatters and validation — a separate widget per type would have been five copies of the same text field. Choice and slider have their own. A choice question that arrives with no options renders an explicit broken-question state rather than a blank screen.
 
 ### Admin-managed content
 
@@ -108,11 +117,10 @@ There's no authoring UI in the app. Surveys are created and edited directly in t
 
 ## Stack
 
-|             |                                  |
-| ----------- | -------------------------------- |
-| **App**     | Flutter / Dart                   |
-| **Backend** | Supabase (Postgres, Auth, RLS)   |
-| **Fonts**   | Inter Tight + Fraunces (bundled) |
+|             |                                |
+| ----------- | ------------------------------ |
+| **App**     | Flutter / Dart                 |
+| **Backend** | Supabase (Postgres, Auth, RLS) |
 
 No state-management package — screens own their state and talk to two service classes (`AuthService`, `SurveyService`). No routing package — `MaterialApp.home` switches on an auth-state enum.
 
@@ -120,23 +128,16 @@ No state-management package — screens own their state and talk to two service 
 
 ## Database
 
-```
-surveys ──< questions ──< options
-   │            │            │
-   │            └────────────┼──< answers >── survey_responses ──> auth.users
-   └───────────────────────────────────────────────────────┘
-```
+| Table              | Notes                                                                                  |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| `surveys`          | `duration`, `reward`, `is_published`; `length` kept in sync by trigger                 |
+| `questions`        | `order_index`, `is_required`, `type`, slider bounds, `max_length`                      |
+| `options`          | `order_index`, `label`                                                                 |
+| `survey_responses` | `user_id` defaults to `auth.uid()`; `UNIQUE (survey_id, user_id)`                      |
+| `answers`          | One of `text_answer` / `number_answer` / `option_id` / `option_ids`, enforced by CHECK |
+| `profiles`         | `full_name`, created by trigger on signup; readable and editable only by its owner     |
 
-| Table               | Notes                                                                     |
-| ------------------- | ------------------------------------------------------------------------- |
-| `surveys`           | `duration`, `reward`, `is_published`; `length` kept in sync by trigger    |
-| `questions`         | `order_index`, `is_required`, `type`, slider bounds, `max_length`         |
-| `options`           | `order_index`, `label`                                                    |
-| `survey_responses`  | `user_id` defaults to `auth.uid()`; `UNIQUE (survey_id, user_id)`        |
-| `answers`           | One of `text_answer` / `number_answer` / `option_id` / `option_ids`, enforced by CHECK |
-| `profiles`          | `full_name`, created by trigger on signup; readable and editable only by its owner |
-
-Two database functions:
+Two functions the app calls (the rest are trigger helpers):
 
 - `get_available_surveys()` — published surveys the caller hasn't completed yet.
 - `submit_survey(uuid, jsonb)` — validates and writes the full submission in one transaction.
@@ -149,20 +150,25 @@ Two database functions:
 lib/
   core/
     constants/     colors, enums, motion
-    models/        Survey, Question, Option, SurveySubmission
+    models/        Survey, Question, Option, SurveySubmission, UserProfile
   screens/         auth (4), home, profile, survey intro/steps/outro
   services/        AuthService, SurveyService
   shared/
-    questions/     one widget per question type
+    questions/     short text, long text, single choice, multi choice, slider
     widgets/       button, text field, cards, tiles, wordmark, motion helpers
 assets/
   email-templates/ custom HTML email templates for Supabase
+  icon/            launcher icon sources
   .env             Supabase credentials (not committed)
-fonts/
-  Fraunces-VariableFont_wght.ttf
 supabase/
-  migrations/      schema + policies, then seed content
+  migrations/      schema + policies, seed content, profiles
+test/              live integration test against the real project
+tool/              Python scripts that render the icon and wordmark from Fraunces
 ```
+
+`tool/make_icon.py` and `tool/make_wordmark.py` render their PNGs from the same
+font file the in-app wordmark uses, so the launcher icon and the mark on screen
+cannot drift apart. Re-run them, then `dart run flutter_launcher_icons`.
 
 ---
 
@@ -170,23 +176,14 @@ supabase/
 
 Animation is used to confirm, not decorate. Durations and curves live in one place (`lib/core/constants/motion.dart`) and every animated widget routes its duration through `AppMotion.of(context, ...)`, which collapses to `Duration.zero` when the platform's _reduce motion_ setting is on.
 
-| Where                 | What                                                             |
-| --------------------- | ---------------------------------------------------------------- |
-| Every button and card | Press-in scale, sized to the surface                             |
-| Survey steps          | Slide and fade, direction following Next or Back                 |
-| Progress bar          | Tweens to the new value instead of jumping                       |
-| Choice chips          | Fill, border weight and label weight animate together            |
-| Survey list           | Staggered entrance, capped after the first few cards             |
+| Where                 | What                                                                 |
+| --------------------- | -------------------------------------------------------------------- |
+| Every button and card | Press-in scale, sized to the surface                                 |
+| Survey steps          | Slide and fade, direction following Next or Back                     |
+| Progress bar          | Tweens to the new value instead of jumping                           |
+| Choice chips          | Fill, border weight and label weight animate together                |
+| Survey list           | Staggered entrance, capped after the first few cards                 |
 | Reward screen         | The points figure counts up, in tabular figures so it doesn't jitter |
-
----
-
-## Roadmap
-
-- [ ] Redemption — spend points on rewards
-- [ ] Deep-linked password reset
-- [ ] Draft persistence — resume a survey later
-- [ ] Tests and CI
 
 ---
 

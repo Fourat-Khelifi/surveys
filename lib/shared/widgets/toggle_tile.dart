@@ -28,7 +28,7 @@ class AppToggleTile<T> extends StatelessWidget {
         curve: AppMotion.standard,
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.atomictangerine : Colors.transparent,
+          color: isActive ? AppColors.accent : Colors.transparent,
           // The border thickens as well as filling, so selection still reads
           // without relying on colour alone.
           border: Border.all(color: Colors.black, width: isActive ? 2 : 1.5),
